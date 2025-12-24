@@ -1,9 +1,9 @@
-import { HelloWorld } from "@/components/HelloWorld";
+import { Posts } from "@/components/Posts";
 
 function App() {
   return (
     <>
-      <HelloWorld />
+      <Posts />
     </>
   );
 }
