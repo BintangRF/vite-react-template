@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
-button {
+#root {
+  height: 100vh;
+}
+
+button:not(:disabled):not(.cursor-not-allowed) {
   cursor: pointer;
 }
