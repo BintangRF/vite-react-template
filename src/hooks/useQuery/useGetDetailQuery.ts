@@ -2,57 +2,68 @@ import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 /**
- * Hook GET DETAIL data dengan endpoint dynamic
+ * Hook GET DETAIL data dengan endpoint dinamis (path params + query params)
  *
- * - queryKey: key cache unik
- * - endpoint: string endpoint dengan placeholder, misal "/todos/:id"
- * - paramsForEndpoint: object untuk mengganti placeholder (:id, :userId, dsb)
- * - params: optional query params tambahan (search, filter, expand)
+ * Digunakan untuk:
+ * - mengambil detail satu data (by id atau kombinasi parameter)
+ * - endpoint REST dengan placeholder (:id, :userId, dll)
  *
- * Otomatis:
- * - mengganti semua placeholder :key di endpoint dengan value di paramsForEndpoint
- * - cache berdasarkan queryKey + params
+ * Parameter:
+ * - queryKey: cache key unik (disarankan array, bukan string)
+ * - endpoint: endpoint dengan placeholder, contoh "/todos/:id"
+ * - paramsForEndpoint: object untuk mengganti placeholder di endpoint
+ *   contoh: { id: 5 } → "/todos/5"
+ * - params: optional query params (search, filter, expand, include, dsb)
+ *
+ * Perilaku otomatis:
+ * - mengganti semua placeholder :key di endpoint dengan value dari paramsForEndpoint
+ * - encode value agar aman di URL
+ * - cache akan berbeda jika query params berbeda
+ *
+ * Catatan:
+ * - T adalah tipe data yang DIKEMBALIKAN oleh api.get
+ * - jika backend membungkus response:
+ *   { data: T; message?: string }
+ *   maka gunakan: useGetDetailQuery<ApiResponse<T>>
  *
  * Contoh penggunaan:
  *
- * Hardcoded ID
- * const { data, isLoading } = useGetDetailQuery<Todo>(
- *   "todo-5",
+ * type ApiResponse<T> = {
+ *   data: T;
+ *   message?: string;
+ * };
+ *
+ * type Todo = {
+ *   id: number;
+ *   title: string;
+ *   completed: boolean;
+ * };
+ *
+ * // Hardcoded ID
+ * const { data, isLoading } = useGetDetailQuery<ApiResponse<Todo>>(
+ *   ["todo", 5],
  *   "/todos/:id",
  *   { id: 5 }
  * );
  *
- * ID dari props
+ * // ID dari props
  * function TodoDetail({ todoId }: { todoId: number }) {
- *   const { data, isLoading } = useGetDetailQuery<Todo>(
- *     `todo-${todoId}`,
+ *   const { data } = useGetDetailQuery<ApiResponse<Todo>>(
+ *     ["todo", todoId],
  *     "/todos/:id",
  *     { id: todoId }
  *   );
- *   ...
  * }
  *
- * ID dari URL params (React Router v6)
- * import { useParams } from "react-router-dom";
- * function TodoDetailPage() {
- *   const { id } = useParams<{ id: string }>();
- *   const { data, isLoading } = useGetDetailQuery<Todo>(
- *     `todo-${id}`,
- *     "/todos/:id",
- *     { id }
- *   );
- *   ...
- * }
- *
- * Lebih dari satu placeholder
- * const { data } = useGetDetailQuery<Post>(
- *   "user-post-42-7",
+ * // Lebih dari satu placeholder
+ * const { data } = useGetDetailQuery<ApiResponse<Post>>(
+ *   ["user-post", 42, 7],
  *   "/users/:userId/posts/:postId",
  *   { userId: 42, postId: 7 }
  * );
  */
 export function useGetDetailQuery<T>(
-  queryKey: string,
+  queryKey: readonly unknown[],
   endpoint: string,
   paramsForEndpoint?: Record<string, string | number>,
   params?: Record<string, any>
@@ -66,7 +77,7 @@ export function useGetDetailQuery<T>(
     : endpoint;
 
   return useQuery<T>({
-    queryKey: [queryKey, params ?? {}],
+    queryKey: [...queryKey, params ?? {}],
     queryFn: () => api.get<T>(finalEndpoint, params),
     placeholderData: (previousData) => previousData,
   });

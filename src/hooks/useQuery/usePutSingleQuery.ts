@@ -5,18 +5,59 @@ import {
   useQueryClient,
   type UseMutationOptions,
 } from "@tanstack/react-query";
+
 /**
- * Hook PUT untuk UPDATE SATU DATA (detail page)
+ * Hook PUT untuk UPDATE SATU DATA (DETAIL PAGE)
  *
- * Ciri:
- * - id dikunci di endpoint
+ * Digunakan untuk:
+ * - halaman detail
+ * - form edit satu entitas
+ * - update data ketika `id` sudah dikunci di endpoint
+ *
+ * Karakteristik:
+ * - endpoint SUDAH mengandung id
  * - payload TIDAK mengandung id
- * - cocok untuk form edit / halaman detail
+ * - fokus ke update satu resource
  *
- * Contoh:
+ * Parameter:
+ * - queryKey: cache key yang akan di-invalidate setelah sukses
+ * - endpoint: endpoint API lengkap (sudah termasuk id)
+ *   contoh: `/todos/5`
+ * - notifier: optional notifier untuk success / error
+ * - options: opsi tambahan dari React Query
+ *
+ * Perilaku otomatis:
+ * - menjalankan HTTP PUT ke endpoint yang sudah fix
+ * - mengirim body tanpa id
+ * - invalidate cache berdasarkan queryKey setelah sukses
+ * - memanggil notifier.success dengan response backend
+ *
+ * Catatan penting:
+ * - TResponse = response backend
+ * - TBody = body request (payload update)
+ * - backend umumnya mengembalikan:
+ *   { data: T; message?: string }
+ *
+ * Contoh penggunaan:
+ *
+ * type ApiResponse<T> = {
+ *   data: T;
+ *   message?: string;
+ * };
+ *
+ * type Todo = {
+ *   id: number;
+ *   title: string;
+ *   completed: boolean;
+ * };
+ *
+ * type UpdateTodoBody = {
+ *   title: string;
+ * };
+ *
  * const updateTodo = usePutSingleQuery<
- *   ApiResponse<Todo>,
- *   { title: string }
+ *   ApiResponse<Todo>,     // response backend
+ *   UpdateTodoBody         // body update (tanpa id)
  * >(
  *   ["todos"],
  *   `/todos/${id}`,

@@ -7,17 +7,46 @@ import {
 } from "@tanstack/react-query";
 
 /**
- * Hook DELETE data
+ * Hook DELETE data (mutation)
  *
- * Cocok untuk:
- * - hapus item dari table / list
- * - hapus berdasarkan id atau parameter lain
+ * Digunakan untuk:
+ * - menghapus satu data dari list / table
+ * - menghapus data berdasarkan id atau parameter lain
  *
- * endpoint berupa function agar fleksibel:
- * (id) => `/todos/${id}`
+ * Parameter:
+ * - queryKey: cache key yang akan di-invalidate setelah sukses
+ * - endpoint: function pembentuk endpoint (dinamis & fleksibel)
+ *   contoh: (id) => `/todos/${id}`
+ * - notifier: optional notifier untuk handle success / error
+ * - options: opsi tambahan dari React Query
  *
- * Contoh:
- * const deleteTodo = useDeleteQuery<ApiResponse<void>, number>(
+ * Perilaku otomatis:
+ * - menjalankan HTTP DELETE ke endpoint hasil function
+ * - invalidate cache berdasarkan queryKey setelah sukses
+ * - memanggil notifier.success dengan response backend
+ *
+ * Catatan penting:
+ * - TResponse adalah RESPONSE DARI BACKEND
+ * - untuk DELETE, umumnya backend mengembalikan:
+ *   { data: null | void; message: string }
+ *
+ * Contoh penggunaan:
+ *
+ * type ApiResponse<T> = {
+ *   data: T;
+ *   message?: string;
+ * };
+ *
+ * type Todo = {
+ *   id: number;
+ *   title: string;
+ *   completed: boolean;
+ * };
+ *
+ * const deleteTodo = useDeleteQuery<
+ *   ApiResponse<void>, // response backend (tanpa data)
+ *   number             // payload ke endpoint (id)
+ * >(
  *   ["todos"],
  *   (id) => `/todos/${id}`,
  *   swalNotifier

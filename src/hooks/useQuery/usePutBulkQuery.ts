@@ -7,17 +7,58 @@ import {
 } from "@tanstack/react-query";
 
 /**
- * Hook PUT untuk update dari LIST / TABLE
+ * Hook PUT untuk UPDATE data dari LIST / TABLE (bulk-style update)
  *
- * Ciri:
- * - payload WAJIB mengandung id
- * - endpoint berupa function (id) => string
- * - cocok untuk DataTable, modal edit, inline edit
+ * Digunakan untuk:
+ * - update data dari DataTable
+ * - modal edit
+ * - inline edit (row-based)
  *
- * Contoh:
+ * Karakteristik:
+ * - payload WAJIB mengandung `id`
+ * - `id` digunakan untuk membentuk endpoint
+ * - body request otomatis mengecualikan `id`
+ *
+ * Parameter:
+ * - queryKey: cache key yang akan di-invalidate setelah sukses
+ * - endpoint: function pembentuk endpoint berbasis id
+ *   contoh: (id) => `/todos/${id}`
+ * - notifier: optional notifier untuk success / error
+ * - options: opsi tambahan dari React Query
+ *
+ * Perilaku otomatis:
+ * - memisahkan `id` dari payload
+ * - menjalankan HTTP PUT ke endpoint berbasis id
+ * - invalidate cache berdasarkan queryKey setelah sukses
+ * - memanggil notifier.success dengan response backend
+ *
+ * Catatan penting:
+ * - TVariables = payload update (WAJIB ada id)
+ * - TResponse = response backend
+ * - backend umumnya mengembalikan:
+ *   { data: T; message?: string }
+ *
+ * Contoh penggunaan:
+ *
+ * type ApiResponse<T> = {
+ *   data: T;
+ *   message?: string;
+ * };
+ *
+ * type Todo = {
+ *   id: number;
+ *   title: string;
+ *   completed: boolean;
+ * };
+ *
+ * type UpdateTodoPayload = {
+ *   id: number;
+ *   title: string;
+ * };
+ *
  * const updateTodo = usePutBulkQuery<
- *   { id: number; title: string },
- *   ApiResponse<Todo>
+ *   UpdateTodoPayload,     // payload update (harus ada id)
+ *   ApiResponse<Todo>      // response backend
  * >(
  *   ["todos"],
  *   (id) => `/todos/${id}`,
