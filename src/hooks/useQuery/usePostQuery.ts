@@ -7,36 +7,30 @@ import {
 } from "@tanstack/react-query";
 
 /**
- * Hook PUT untuk UPDATE data dari LIST / TABLE (bulk-style update)
+ * Hook POST data (CREATE / SUBMIT FORM)
  *
  * Digunakan untuk:
- * - update data dari DataTable
- * - modal edit
- * - inline edit (row-based)
- *
- * Karakteristik:
- * - payload WAJIB mengandung `id`
- * - `id` digunakan untuk membentuk endpoint
- * - body request otomatis mengecualikan `id`
+ * - membuat data baru
+ * - submit form ke backend
  *
  * Parameter:
  * - queryKey: cache key yang akan di-invalidate setelah sukses
- * - endpoint: function pembentuk endpoint berbasis id
- *   contoh: (id) => `/todos/${id}`
- * - notifier: optional notifier untuk success / error
+ * - endpoint: endpoint API tujuan POST
+ * - notifier: optional notifier untuk handle success / error
  * - options: opsi tambahan dari React Query
  *
  * Perilaku otomatis:
- * - memisahkan `id` dari payload
- * - menjalankan HTTP PUT ke endpoint berbasis id
+ * - menjalankan HTTP POST ke endpoint
+ * - mengirim payload (TVariables) ke backend
  * - invalidate cache berdasarkan queryKey setelah sukses
  * - memanggil notifier.success dengan response backend
  *
  * Catatan penting:
- * - TVariables = payload update (WAJIB ada id)
- * - TResponse = response backend
- * - backend umumnya mengembalikan:
+ * - TResponse adalah RESPONSE DARI BACKEND
+ * - backend umumnya mengembalikan wrapper:
  *   { data: T; message?: string }
+ * - constraint `extends { message?: string }`
+ *   memastikan notifier dapat membaca message
  *
  * Contoh penggunaan:
  *
@@ -51,39 +45,36 @@ import {
  *   completed: boolean;
  * };
  *
- * type UpdateTodoPayload = {
- *   id: number;
+ * type CreateTodoPayload = {
  *   title: string;
  * };
  *
- * const updateTodo = usePutBulkQuery<
- *   UpdateTodoPayload,     // payload update (harus ada id)
- *   ApiResponse<Todo>      // response backend
+ * const createTodo = usePostQuery<
+ *   ApiResponse<Todo>,     // response backend
+ *   CreateTodoPayload      // payload request
  * >(
  *   ["todos"],
- *   (id) => `/todos/${id}`,
+ *   "/todos",
  *   swalNotifier
  * );
  *
- * updateTodo.mutate({
- *   id: 5,
- *   title: "Updated",
+ * createTodo.mutate({
+ *   title: "Belajar TypeScript"
  * });
  */
-export function usePutBulkQuery<
-  TVariables extends { id: string | number },
-  TResponse = unknown
+export function usePostQuery<
+  TResponse extends { message?: string },
+  TVariables = unknown
 >(
   queryKey: readonly unknown[],
-  endpoint: (id: TVariables["id"]) => string,
+  endpoint: string,
   notifier?: NotifyFn<TResponse>,
   options?: UseMutationOptions<TResponse, unknown, TVariables>
 ) {
   const qc = useQueryClient();
 
   return useMutation<TResponse, unknown, TVariables>({
-    mutationFn: ({ id, ...body }) =>
-      api.put<TResponse, Omit<TVariables, "id">>(endpoint(id), body),
+    mutationFn: (payload) => api.post<TResponse, TVariables>(endpoint, payload),
 
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey });
