@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import type { ApiResponse } from "@/types/api-response.types";
 import { useQuery } from "@tanstack/react-query";
 
 /**
@@ -21,14 +22,9 @@ import { useQuery } from "@tanstack/react-query";
  * - T adalah tipe data yang DIKEMBALIKAN oleh api.get
  * - jika backend membungkus response:
  *   { data: T; message?: string }
- *   maka gunakan: useGetQuery<ApiResponse<T>>
+ *   maka gunakan: useGetQuery<T>
  *
  * Contoh penggunaan:
- *
- * type ApiResponse<T> = {
- *   data: T;
- *   message?: string;
- * };
  *
  * type Todo = {
  *   id: number;
@@ -37,14 +33,14 @@ import { useQuery } from "@tanstack/react-query";
  * };
  *
  * // Ambil list todos
- * const { data, isLoading } = useGetQuery<ApiResponse<Todo[]>>(
+ * const { data, isLoading } = useGetQuery<Todo[]>(
  *   ["todos"],
  *   "/todos",
  *   { page: 1, limit: 10 }
  * );
  *
  * // Ambil detail sederhana (tanpa path param)
- * const { data } = useGetQuery<ApiResponse<Todo>>(
+ * const { data } = useGetQuery<Todo>(
  *   ["todo", 5],
  *   "/todos/5"
  * );
@@ -56,7 +52,15 @@ export function useGetQuery<T>(
 ) {
   return useQuery<T>({
     queryKey: [...queryKey, params ?? {}],
-    queryFn: () => api.get<T>(endpoint, params),
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<T>>(endpoint, params);
+
+      if (res && typeof res === "object" && "data" in res) {
+        return res.data;
+      }
+
+      return res;
+    },
     placeholderData: (previousData) => previousData,
   });
 }

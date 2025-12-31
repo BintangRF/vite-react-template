@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import type { ApiResponse } from "@/types/api-response.types";
 import { useQuery } from "@tanstack/react-query";
 
 /**
@@ -24,14 +25,10 @@ import { useQuery } from "@tanstack/react-query";
  * - T adalah tipe data yang DIKEMBALIKAN oleh api.get
  * - jika backend membungkus response:
  *   { data: T; message?: string }
- *   maka gunakan: useGetDetailQuery<ApiResponse<T>>
+ *   maka gunakan: useGetDetailQuery<T>
  *
  * Contoh penggunaan:
  *
- * type ApiResponse<T> = {
- *   data: T;
- *   message?: string;
- * };
  *
  * type Todo = {
  *   id: number;
@@ -40,7 +37,7 @@ import { useQuery } from "@tanstack/react-query";
  * };
  *
  * // Hardcoded ID
- * const { data, isLoading } = useGetDetailQuery<ApiResponse<Todo>>(
+ * const { data, isLoading } = useGetDetailQuery<Todo>(
  *   ["todo", 5],
  *   "/todos/:id",
  *   { id: 5 }
@@ -48,7 +45,7 @@ import { useQuery } from "@tanstack/react-query";
  *
  * // ID dari props
  * function TodoDetail({ todoId }: { todoId: number }) {
- *   const { data } = useGetDetailQuery<ApiResponse<Todo>>(
+ *   const { data } = useGetDetailQuery<Todo>(
  *     ["todo", todoId],
  *     "/todos/:id",
  *     { id: todoId }
@@ -56,7 +53,7 @@ import { useQuery } from "@tanstack/react-query";
  * }
  *
  * // Lebih dari satu placeholder
- * const { data } = useGetDetailQuery<ApiResponse<Post>>(
+ * const { data } = useGetDetailQuery<Post>(
  *   ["user-post", 42, 7],
  *   "/users/:userId/posts/:postId",
  *   { userId: 42, postId: 7 }
@@ -78,7 +75,15 @@ export function useGetDetailQuery<T>(
 
   return useQuery<T>({
     queryKey: [...queryKey, params ?? {}],
-    queryFn: () => api.get<T>(finalEndpoint, params),
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<T>>(finalEndpoint, params);
+
+      if (res && typeof res === "object" && "data" in res) {
+        return res.data;
+      }
+
+      return res;
+    },
     placeholderData: (previousData) => previousData,
   });
 }

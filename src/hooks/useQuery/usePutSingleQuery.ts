@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { NotifyFn } from "@/types/notify.types";
+import type { ApiResponse } from "@/types/api-response.types";
 import {
   useMutation,
   useQueryClient,
@@ -19,31 +20,14 @@ import {
  * - payload TIDAK mengandung id
  * - fokus ke update satu resource
  *
- * Parameter:
- * - queryKey: cache key yang akan di-invalidate setelah sukses
- * - endpoint: endpoint API lengkap (sudah termasuk id)
- *   contoh: `/todos/5`
- * - notifier: optional notifier untuk success / error
- * - options: opsi tambahan dari React Query
+ * Standar RESPONSE (DIKUNCI DI SINI):
+ * ApiResponse<T> = { data: T; message?: string }
  *
- * Perilaku otomatis:
- * - menjalankan HTTP PUT ke endpoint yang sudah fix
- * - mengirim body tanpa id
- * - invalidate cache berdasarkan queryKey setelah sukses
- * - memanggil notifier.success dengan response backend
- *
- * Catatan penting:
- * - TResponse = response backend
- * - TBody = body request (payload update)
- * - backend umumnya mengembalikan:
- *   { data: T; message?: string }
+ * Caller:
+ * - TIDAK menulis ApiResponse
+ * - cukup fokus ke body & data bisnis
  *
  * Contoh penggunaan:
- *
- * type ApiResponse<T> = {
- *   data: T;
- *   message?: string;
- * };
  *
  * type Todo = {
  *   id: number;
@@ -56,8 +40,8 @@ import {
  * };
  *
  * const updateTodo = usePutSingleQuery<
- *   ApiResponse<Todo>,     // response backend
- *   UpdateTodoBody         // body update (tanpa id)
+ *   Todo,              // data hasil backend
+ *   UpdateTodoBody     // body update (tanpa id)
  * >(
  *   ["todos"],
  *   `/todos/${id}`,
@@ -68,16 +52,16 @@ import {
  *   title: "Updated",
  * });
  */
-export function usePutSingleQuery<TResponse = unknown, TBody = unknown>(
+export function usePutSingleQuery<TData, TBody = unknown>(
   queryKey: readonly unknown[],
   endpoint: string,
-  notifier?: NotifyFn<TResponse>,
-  options?: UseMutationOptions<TResponse, unknown, TBody>
+  notifier?: NotifyFn<ApiResponse<TData>>,
+  options?: UseMutationOptions<ApiResponse<TData>, unknown, TBody>
 ) {
   const qc = useQueryClient();
 
-  return useMutation<TResponse, unknown, TBody>({
-    mutationFn: (body) => api.put<TResponse, TBody>(endpoint, body),
+  return useMutation<ApiResponse<TData>, unknown, TBody>({
+    mutationFn: (body) => api.put<ApiResponse<TData>, TBody>(endpoint, body),
 
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey });

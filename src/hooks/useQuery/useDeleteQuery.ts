@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { NotifyFn } from "@/types/notify.types";
+import type { ApiResponse } from "@/types/api-response.types";
 import {
   useMutation,
   useQueryClient,
@@ -13,29 +14,14 @@ import {
  * - menghapus satu data dari list / table
  * - menghapus data berdasarkan id atau parameter lain
  *
- * Parameter:
- * - queryKey: cache key yang akan di-invalidate setelah sukses
- * - endpoint: function pembentuk endpoint (dinamis & fleksibel)
- *   contoh: (id) => `/todos/${id}`
- * - notifier: optional notifier untuk handle success / error
- * - options: opsi tambahan dari React Query
+ * Standar RESPONSE (DIKUNCI DI SINI):
+ * ApiResponse<T> = { data: T; message?: string }
  *
- * Perilaku otomatis:
- * - menjalankan HTTP DELETE ke endpoint hasil function
- * - invalidate cache berdasarkan queryKey setelah sukses
- * - memanggil notifier.success dengan response backend
- *
- * Catatan penting:
- * - TResponse adalah RESPONSE DARI BACKEND
- * - untuk DELETE, umumnya backend mengembalikan:
- *   { data: null | void; message: string }
+ * Caller:
+ * - TIDAK perlu menulis ApiResponse
+ * - cukup fokus ke tipe data bisnis
  *
  * Contoh penggunaan:
- *
- * type ApiResponse<T> = {
- *   data: T;
- *   message?: string;
- * };
  *
  * type Todo = {
  *   id: number;
@@ -44,8 +30,8 @@ import {
  * };
  *
  * const deleteTodo = useDeleteQuery<
- *   ApiResponse<void>, // response backend (tanpa data)
- *   number             // payload ke endpoint (id)
+ *   void,   // data hasil delete (biasanya kosong)
+ *   number  // id yang dikirim ke endpoint
  * >(
  *   ["todos"],
  *   (id) => `/todos/${id}`,
@@ -54,19 +40,17 @@ import {
  *
  * deleteTodo.mutate(5);
  */
-export function useDeleteQuery<
-  TResponse = unknown,
-  TVariables = string | number
->(
+export function useDeleteQuery<TData = void, TVariables = string | number>(
   queryKey: readonly unknown[],
   endpoint: (variable: TVariables) => string,
-  notifier?: NotifyFn<TResponse>,
-  options?: UseMutationOptions<TResponse, unknown, TVariables>
+  notifier?: NotifyFn<ApiResponse<TData>>,
+  options?: UseMutationOptions<ApiResponse<TData>, unknown, TVariables>
 ) {
   const qc = useQueryClient();
 
-  return useMutation<TResponse, unknown, TVariables>({
-    mutationFn: (variable) => api.delete<TResponse>(endpoint(variable)),
+  return useMutation<ApiResponse<TData>, unknown, TVariables>({
+    mutationFn: (variable) =>
+      api.delete<ApiResponse<TData>>(endpoint(variable)),
 
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey });

@@ -1,6 +1,5 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { useGetQuery } from "@/hooks/useQuery/useGetQuery";
 
 type Post = {
   id: number;
@@ -9,17 +8,10 @@ type Post = {
 };
 
 export const Posts: React.FC = () => {
-  const getPosts = async (): Promise<Post[]> => {
-    const res = await axios.get<Post[]>(
-      "https://jsonplaceholder.typicode.com/posts"
-    );
-    return res.data;
-  };
-
-  const { isPending, isError, data, error } = useQuery({
-    queryKey: ["posts"],
-    queryFn: getPosts,
-  });
+  const { data, isLoading, isError, error } = useGetQuery<Post[]>(
+    ["posts"],
+    "https://jsonplaceholder.typicode.com/posts"
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -30,7 +22,7 @@ export const Posts: React.FC = () => {
         </div>
 
         {/* Loading */}
-        {isPending && (
+        {isLoading && (
           <div className="flex justify-center items-center py-20">
             <div className="flex flex-col items-center gap-3 text-gray-600">
               <span>Loading posts...</span>
@@ -46,7 +38,7 @@ export const Posts: React.FC = () => {
         )}
 
         {/* Data */}
-        {!isPending && !isError && (
+        {!isLoading && !isError && (
           <div className="grid gap-4 sm:grid-cols-2">
             {data?.map((post) => (
               <div

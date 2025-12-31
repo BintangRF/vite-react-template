@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { NotifyFn } from "@/types/notify.types";
+import type { ApiResponse } from "@/types/api-response.types";
 import {
   useMutation,
   useQueryClient,
@@ -13,36 +14,18 @@ import {
  * - membuat data baru
  * - submit form ke backend
  *
- * Parameter:
- * - queryKey: cache key yang akan di-invalidate setelah sukses
- * - endpoint: endpoint API tujuan POST
- * - notifier: optional notifier untuk handle success / error
- * - options: opsi tambahan dari React Query
+ * Standar RESPONSE (DIKUNCI DI SINI):
+ * ApiResponse<T> = { data: T; message?: string }
  *
- * Perilaku otomatis:
- * - menjalankan HTTP POST ke endpoint
- * - mengirim payload (TVariables) ke backend
- * - invalidate cache berdasarkan queryKey setelah sukses
- * - memanggil notifier.success dengan response backend
+ * Caller:
+ * - TIDAK perlu menulis ApiResponse
+ * - cukup fokus ke tipe data bisnis & payload
  *
- * Catatan penting:
- * - TResponse adalah RESPONSE DARI BACKEND
- * - backend umumnya mengembalikan wrapper:
- *   { data: T; message?: string }
- * - constraint `extends { message?: string }`
- *   memastikan notifier dapat membaca message
- *
- * Contoh penggunaan:
- *
- * type ApiResponse<T> = {
- *   data: T;
- *   message?: string;
- * };
+ * Contoh 1: JSON payload (application/json)
  *
  * type Todo = {
  *   id: number;
  *   title: string;
- *   completed: boolean;
  * };
  *
  * type CreateTodoPayload = {
@@ -50,8 +33,8 @@ import {
  * };
  *
  * const createTodo = usePostQuery<
- *   ApiResponse<Todo>,     // response backend
- *   CreateTodoPayload      // payload request
+ *   Todo,
+ *   CreateTodoPayload
  * >(
  *   ["todos"],
  *   "/todos",
@@ -61,20 +44,55 @@ import {
  * createTodo.mutate({
  *   title: "Belajar TypeScript"
  * });
+ *
+ * Contoh 2: FORM DATA (multipart/form-data)
+ *
+ * Gunakan utility `objectToFormData`
+ * untuk mengubah object biasa menjadi FormData.
+ *
+ * Utility:
+ * import { objectToFormData } from "@/utils/objectToFormData";
+ *
+ * type UploadResponse = {
+ *   id: number;
+ *   filename: string;
+ *   url: string;
+ * };
+ *
+ * type UploadFormValues = {
+ *   title: string;
+ *   file: File;
+ *   attachments?: File[];
+ * };
+ *
+ * const uploadFile = usePostQuery<
+ *   UploadResponse,
+ *   FormData
+ * >(
+ *   ["files"],
+ *   "/upload",
+ *   swalNotifier
+ * );
+ *
+ * const payload = objectToFormData<UploadFormValues>({
+ *   title: "Dokumen A",
+ *   file: selectedFile,
+ *   attachments: additionalFiles,
+ * });
+ *
+ * uploadFile.mutate(payload);
  */
-export function usePostQuery<
-  TResponse extends { message?: string },
-  TVariables = unknown
->(
+export function usePostQuery<TData, TVariables = unknown>(
   queryKey: readonly unknown[],
   endpoint: string,
-  notifier?: NotifyFn<TResponse>,
-  options?: UseMutationOptions<TResponse, unknown, TVariables>
+  notifier?: NotifyFn<ApiResponse<TData>>,
+  options?: UseMutationOptions<ApiResponse<TData>, unknown, TVariables>
 ) {
   const qc = useQueryClient();
 
-  return useMutation<TResponse, unknown, TVariables>({
-    mutationFn: (payload) => api.post<TResponse, TVariables>(endpoint, payload),
+  return useMutation<ApiResponse<TData>, unknown, TVariables>({
+    mutationFn: (payload) =>
+      api.post<ApiResponse<TData>, TVariables>(endpoint, payload),
 
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey });
