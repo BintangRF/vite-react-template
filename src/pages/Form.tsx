@@ -1,57 +1,41 @@
-// schemas/user.schema.ts
-import { z } from "zod";
 import React from "react";
-import { FormWrapper } from "@/components/form/FormWrapper";
-import { InputText } from "@/components/form/inputs/InputText";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { InputSelect } from "@/components/form/inputs/InputSelect";
-import { InputCheckbox } from "@/components/form/inputs/InputCheckbox";
-import { FormButton } from "@/components/form/FormButton";
-
-export const userSchema = z.object({
-  name: z.string().min(1, "Nama wajib"),
-  email: z.email("Email tidak valid"),
-  role: z.string().min(1, "Role wajib"),
-  active: z.boolean().optional(),
-});
-
-export type UserFormValues = z.infer<typeof userSchema>;
+import { UserFormDataForm } from "@/pages-components/FormPages/UserFormDataForm";
+import { UserJsonForm } from "@/pages-components/FormPages/UserJsonForm";
 
 export default function Form(): React.ReactElement {
   return (
-    <div className="flex items-center justify-center h-full">
-      <FormWrapper<UserFormValues>
-        formOptions={{
-          resolver: zodResolver(userSchema),
-          defaultValues: {
-            name: "",
-            email: "",
-            role: "",
-            active: false,
-          },
-        }}
-        onSubmit={(values) => {
-          const list = Object.values(values)
-            .map((v, i) => `${i + 1}. ${v}`)
-            .join("\n");
+    <div className="min-h-screen bg-gray-100 p-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          {/* JSON FORM */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <header className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">
+                JSON Payload
+              </h2>
+              <p className="text-sm text-gray-500">
+                Standard application/json request
+              </p>
+            </header>
 
-          alert(list);
-        }}
-        className="min-w-md max-w-xl"
-      >
-        <InputText name="name" label="Name" />
-        <InputText name="email" label="Email" />
-        <InputSelect
-          name="role"
-          label="Role"
-          options={[
-            { label: "Admin", value: "admin" },
-            { label: "User", value: "user" },
-          ]}
-        />
-        <InputCheckbox name="active" label="Active" />
-        <FormButton>Create</FormButton>
-      </FormWrapper>
+            <UserJsonForm />
+          </section>
+
+          {/* FORM DATA */}
+          <section className="rounded-xl bg-white p-6 shadow-sm">
+            <header className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">
+                FormData Payload
+              </h2>
+              <p className="text-sm text-gray-500">
+                multipart/form-data (file upload)
+              </p>
+            </header>
+
+            <UserFormDataForm />
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
